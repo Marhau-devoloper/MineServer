@@ -3,6 +3,7 @@
 #include "vector"
 #include "filesystem"
 #include <string.h>
+#include <bits/stdc++.h>
 
 using namespace std;
 
@@ -22,8 +23,34 @@ size_t write_data(void *ptr, size_t size, size_t nmemb, FILE *stream) {
 }
 
 
+namespace fs = std::filesystem;
+
+// Returns the first Forge server jar in a folder
+std::string findForgeJar(const std::string& folderPath) {
+    for (const auto& entry : fs::directory_iterator(folderPath)) {
+        if (entry.is_regular_file()) {
+            auto filename = entry.path().filename().string();
+            std::cout << "Checking: " << filename << std::endl;
+
+            // Check if filename starts with "forge-" and ends with ".jar"
+            if (filename.size() >= 10 &&
+                filename.substr(0, 6) == "forge-" &&
+                filename.substr(filename.size() - 4) == ".jar" &&
+                filename.find("installer") == std::string::npos) // ignore installer
+            {
+                return filename; // first matching jar
+            }
+        }
+    }
+    return "";
+}
+
+
 
 string DownloadCore(string core, string Version, string Path) {
+    //lowercase core name from Forge to forge
+    transform(core.begin(), core.end(), core.begin(),
+              ::tolower);
     //url
     string url = "https://mcutils.com/api/server-jars/" + core + "/" + Version + "/download";
     
@@ -40,7 +67,7 @@ string DownloadCore(string core, string Version, string Path) {
     if (!curl) {
         return "Failed to initialize CURL";
     }
-    cout << "Downloading Server Core" << endl;
+    cout << "Downloading Server Core: " << url << endl;
     fp = fopen(outfilename, "wb");
     if (!fp) {
         curl_easy_cleanup(curl);
@@ -73,25 +100,49 @@ string DownloadCore(string core, string Version, string Path) {
 
 
 
-void GenConf(string Path, string Ram){
+void GenConf(string Path, string Ram,string Core){
     // start.sh path
     string Path_sh = Path + "/start.sh";
     // eula.txt path
     string Path_txt = Path + "/eula.txt";
     // data for eula
     string filed_txt = "eula=true";
-    //data for start.sh
-    string filed_sh = "java -Xmx"+ Ram +"G -jar server.jar --nogui"; 
-    //intilizing FILE
+
+    
+    //data for forge start.sh
+    if (Core == "Forge"){
+        //installing server
+        system(("cd "+ Path +" && java -Xmx12G -jar " + Path + "/server.jar" + " --installServer").c_str());
+        //data for start.sh
+        string filed_sh = "java -Xmx"+ Ram +"G -jar " + findForgeJar(Path) + " nogui"; 
+        //intilizing FILE
+        FILE *fp;
+        //open file to writing for start.sh
+        fp = fopen(Path_sh.c_str(),"wb");
+        //writing start.sh
+        fwrite(filed_sh.c_str(),sizeof(char),strlen(filed_sh.c_str()),fp);
+        //close connection
+        fclose(fp);
+        // making a start.sh executeble
+        system(("chmod +x " + Path_sh).c_str());
+        
+    }else{
+        //data for regular core start.sh
+        string filed_sh = "java -Xmx"+ Ram +"G -jar server.jar --nogui"; 
+        //intilizing FILE
+        FILE *fp;
+        //open file to writing for start.sh
+        fp = fopen(Path_sh.c_str(),"wb");
+        //writing start.sh
+        fwrite(filed_sh.c_str(),sizeof(char),strlen(filed_sh.c_str()),fp);
+        //close connection
+        fclose(fp);
+        // making a start.sh executeble
+        system(("chmod +x " + Path_sh).c_str());
+    }
+    
+    
     FILE *fp;
-    //open file to writing for start.sh
-    fp = fopen(Path_sh.c_str(),"wb");
-    //writing start.sh
-    fwrite(filed_sh.c_str(),sizeof(char),strlen(filed_sh.c_str()),fp);
-    //close connection
-    fclose(fp);
-    // making a start.sh executeble
-    system(("chmod +x " + Path_sh).c_str());
     //open file to writing for eula.txt
     fp = fopen(Path_txt.c_str(),"wb");
     //writing eula.txt
@@ -153,7 +204,7 @@ int main(){
     // Download core
     DownloadCore(Core[UserCore],Version,path);
     // Create Eula And Starter
-    GenConf(path,Ram);
+    GenConf(path,Ram,Core[UserCore]);
     
     return 0;
 }
