@@ -4,9 +4,9 @@
 #include "filesystem"
 #include <string.h>
 #include <bits/stdc++.h>
-
+#include "include/nlohmann/json.hpp"
 using namespace std;
-
+using namespace nlohmann;
 vector<string> Core = {"Fabric","Forge","NeoForge","Paper","PurPur","Vanilla"};
 string Version;
 string type;
@@ -20,6 +20,13 @@ size_t write_data(void *ptr, size_t size, size_t nmemb, FILE *stream) {
     
     size_t written = fwrite(ptr, size, nmemb, stream);
     return written;
+}
+
+
+size_t WriteCallback(void* contents, size_t size, size_t nmemb, std::string* output) {
+    size_t totalSize = size * nmemb;
+    output->append((char*)contents, totalSize);
+    return totalSize;
 }
 
 
@@ -98,7 +105,24 @@ string DownloadCore(string core, string Version, string Path) {
     return "Download finished";
 }
 
+void GetVersions(string Core){
+    CURL * handle; 
+    json jsn;
+    CURLcode res;
+    string response;
+    handle = curl_easy_init();
+    string URL = "https://mcutils.com/api/server-jars/" + Core;
+    curl_easy_setopt(handle,CURLOPT_URL, URL.c_str());
+    curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION,WriteCallback);
+    //curl_easy_setopt(handle, CURLOPT_FOLLOWLOCATION, 1L);
+    curl_easy_setopt(handle,CURLOPT_WRITEDATA, &response);
+    curl_easy_perform(handle);
+    curl_easy_cleanup(handle); 
+    jsn = json::parse(response);
+    for (const auto& item : jsn)
+    cout << "  " << Core << " : " << item["version"].get<string>() << '\n';
 
+}
 
 void GenConf(string Path, string Ram,string Core){
     // start.sh path
@@ -157,7 +181,11 @@ void GenConf(string Path, string Ram,string Core){
 
 int main(){
 
+
+    
     system("clear");
+
+    
     cout << "Select Core" << "\n"  << "0 = Fabric " << "\n"  << "1 = Forge" << "\n"  << "2 = NeoForge" << "\n"  << "3 = Paper" << "\n" << "4 = PurPur" << "\n"  << "5 = Vanilla" << "\n"  << "Fabric, Forge, NeoForge is Cores With Supports a Mods"<< "\n"  << "Paper, PurPur is Plugins only Cores" << "\n" << "Vanilla is Regular Core With Not Supporting Mods or Plugins" << "\n";
     cout << "  "<< endl;
     cout << "Core : ";
@@ -172,6 +200,8 @@ int main(){
 
     cout << "Core : " + Core[UserCore] << endl;
     cout << " " << endl;
+    cout << "Thats list of Supported Versions" << endl;
+    GetVersions(Core[UserCore]);
     cout << "Enter Minecraft Version." <<endl;
     cout << "For Example: 1.12.2 or 1.21.0" <<endl;
     cout << "Version : ";
