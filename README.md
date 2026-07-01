@@ -1,6 +1,10 @@
+
 # MineServer
+<img width="256" height="256" alt="icon2" src="https://github.com/user-attachments/assets/03847b5b-ee2b-4250-907b-09f315229b17" />
+
 CLI Tool for Downloading Minecraft Server 
-<h6>I created this CLI Tool for my self to create 2 week minecraft server much faster </h6>
+
+<h6>I created this CLI Tool for my self to create 2 week minecraft server much faster  </h6>
 
 
 <h3>MineServer Dependencies </h3>
