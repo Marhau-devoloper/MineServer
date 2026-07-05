@@ -3,6 +3,7 @@
 #include "vector"
 #include "filesystem"
 #include <string.h>
+#include <stdlib.h>
 #include <bits/stdc++.h>
 #include "include/nlohmann/json.hpp"
 using namespace std;
@@ -52,8 +53,11 @@ std::string findForgeJar(const std::string& folderPath) {
     return "";
 }
 
-
-
+string toLower(std::string str) {
+    transform(str.begin(), str.end(), str.begin(),
+        [](unsigned char c) { return tolower(c); });
+    return str;
+}
 string DownloadCore(string core, string Version, string Path) {
     //lowercase core name from Forge to forge
     transform(core.begin(), core.end(), core.begin(),
@@ -91,11 +95,13 @@ string DownloadCore(string core, string Version, string Path) {
     if (res != CURLE_OK) {
         cerr << "CURL failed: " << curl_easy_strerror(res) << endl;
     } else {
-        cout << "Download completed!" << endl;
+        cout << "\033[32m" << "Download completed!" << "\033[0m" << endl;
+        
         char *redirected_url = nullptr;
         curl_easy_getinfo(curl, CURLINFO_EFFECTIVE_URL, &redirected_url);
-        if (redirected_url) {
-            cout << "URL Found" << endl;
+        char ok = 1;
+        if (redirected_url and ok != 1) {
+            cout << "\033[31m" << "URL Found" << "\033[0m" << endl;
         }
     }
 
@@ -111,7 +117,9 @@ void GetVersions(string Core){
     CURLcode res;
     string response;
     handle = curl_easy_init();
-    string URL = "https://mcutils.com/api/server-jars/" + Core;
+    
+    
+    string URL = "https://mcutils.com/api/server-jars/" + toLower(Core);
     curl_easy_setopt(handle,CURLOPT_URL, URL.c_str());
     curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION,WriteCallback);
     //curl_easy_setopt(handle, CURLOPT_FOLLOWLOCATION, 1L);
@@ -119,9 +127,37 @@ void GetVersions(string Core){
     curl_easy_perform(handle);
     curl_easy_cleanup(handle); 
     jsn = json::parse(response);
-    for (const auto& item : jsn)
-    cout << "  " << Core << " : " << item["version"].get<string>() << '\n';
+    cout << Core << ": " <<endl;
+    char counts = 0;
+    
+    cout << "" << endl;
+    cout << "=====================================================================================" << endl;
+    for (const auto& item : jsn){
+        
+        counts += 1;
+        if (counts >= 11){
+            cout << " " << item["version"].get<string>() << '\n';
+            counts = 0;
+        }else{
+            cout << " " << item["version"].get<string>() << ",";
+        }
+        
+    }
+    
 
+
+    cout << "" << endl;
+    
+    cout << "=====================================================================================" << endl;
+    cout << "For Example Select Any Version Between: " << jsn.front()["version"].get<string>() << " and " << jsn.back()["version"].get<string>() <<endl;
+    cout << "Enter Minecraft Version From List Above." <<endl;
+    
+    
+    
+    
+        
+    
+    
 }
 
 void GenConf(string Path, string Ram,string Core){
@@ -184,47 +220,51 @@ int main(){
 
     
     system("clear");
-
-    
+    cout << "------------------ MineServer By Marhau -------------------" << endl;
     cout << "Select Core" << "\n"  << "0 = Fabric " << "\n"  << "1 = Forge" << "\n"  << "2 = NeoForge" << "\n"  << "3 = Paper" << "\n" << "4 = PurPur" << "\n"  << "5 = Vanilla" << "\n"  << "Fabric, Forge, NeoForge is Cores With Supports a Mods"<< "\n"  << "Paper, PurPur is Plugins only Cores" << "\n" << "Vanilla is Regular Core With Not Supporting Mods or Plugins" << "\n";
+    cout << "-----------------------------------------------------------" << endl;
     cout << "  "<< endl;
+    
     cout << "Core : ";
+   
     cin >> UserCore ;
     
     if ((UserCore < 0 ) || (UserCore > 5)) {
         system("clear");
-        cout << "Please Choose someing between 0 and 5";
+        cout << "\033[31m" << "Please Choose Value between 0 and 5" << "\033[0m" << endl;
         exit(0);
     };
     system("clear");
 
     cout << "Core : " + Core[UserCore] << endl;
     cout << " " << endl;
-    cout << "Thats list of Supported Versions" << endl;
+    cout << "List of Versions" << endl;
     GetVersions(Core[UserCore]);
-    cout << "Enter Minecraft Version." <<endl;
-    cout << "For Example: 1.12.2 or 1.21.0" <<endl;
+    
     cout << "Version : ";
     cin >> Version;
+    
     system("clear");
-
+    cout << "-----------------" << endl;
     cout << "Core : " + Core[UserCore] << endl;
     cout << "Version : " + Version << endl;
+    cout << "-----------------" << endl;
     cout << "  "<< endl;
     cout << "Enter server name without spaces" << endl;
     cout << "Name : ";
     cin >> Name;
     system("clear");
-
+    cout << "-----------------" << endl;
     cout << "Core : " + Core[UserCore] << endl;
     cout << "Version : " + Version << endl;
     cout << "Name : " + Name << endl;
+    cout << "-----------------" << endl;
     cout << "  "<< endl;
     cout << "Enter amount of ram " << endl;
-    cout << "Recomend use 8 or more GB"<< endl;
+    cout << "Recommended to use 8 or more GB of Ram"<< endl;
     cout << "Ram : ";
     cin >> Ram;
-
+    system("clear");
     // construct a path 
     path = string(getenv("HOME")) + "/" + Name + "_" + Core[UserCore] + "_" + Version;
     // construct a command to create a dir inside of home 
@@ -235,6 +275,14 @@ int main(){
     DownloadCore(Core[UserCore],Version,path);
     // Create Eula And Starter
     GenConf(path,Ram,Core[UserCore]);
+    system("clear");
+    cout << "Core : " + Core[UserCore] << endl;
+    cout << "Version : " + Version << endl;
+    cout << "Ram : " + Ram + "GB"<< endl;
+    cout << "Name : " + Name << endl;
+    cout << "-----------------------------------------------------------" << endl;
+    cout << "\033[32m" << "Server Created At "<< path << "\033[0m" << endl;
+    cout << "-----------------------------------------------------------" << endl;
     
     return 0;
 }
